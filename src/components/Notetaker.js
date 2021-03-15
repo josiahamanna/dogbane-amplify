@@ -42,11 +42,7 @@ function Notetaker() {
       API.graphql(graphqlOperation(onUpdateNote)).subscribe({
         next: ({ value }) => {
           const updatedNote = value.data.onUpdateNote;
-          const index = notes.findIndex((note) => {
-            console.log(note.id === updatedNote.id);
-            return note.id === updatedNote.id;
-          });
-          console.log("updated note id", updatedNote.id, "index", index);
+          const index = notes.findIndex((note) => note.id === updatedNote.id);
           if (index > -1)
             setNotes((prevState) => [
               ...prevState.slice(0, index),
