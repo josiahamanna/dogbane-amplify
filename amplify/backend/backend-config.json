@@ -8,7 +8,7 @@
     }
   },
   "api": {
-    "amplifynotetaker": {
+    "dogbaneamplify": {
       "service": "AppSync",
       "providerPlugin": "awscloudformation",
       "output": {

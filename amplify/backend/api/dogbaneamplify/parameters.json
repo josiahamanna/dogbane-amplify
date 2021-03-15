@@ -1,5 +1,5 @@
 {
-  "AppSyncApiName": "amplifynotetaker",
+  "AppSyncApiName": "dogbaneamplify",
   "DynamoDBBillingMode": "PAY_PER_REQUEST",
   "DynamoDBEnableServerSideEncryption": false,
   "AuthCognitoUserPoolId": {
