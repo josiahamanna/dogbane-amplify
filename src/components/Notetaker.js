@@ -8,15 +8,31 @@ import {
 import { listNotes } from "../graphql/queries";
 import React, { useEffect, useState } from "react";
 
+import { Auth } from "aws-amplify";
+import awsconfig from "../aws-exports";
+Auth.configure(awsconfig);
+
 function Notetaker() {
-  const [note, setNote] = useState([]);
+  const [note, setNote] = useState("");
   const [notes, setNotes] = useState([]);
   const [id, setId] = useState("");
+  const [user, setUser] = useState();
 
   useEffect(() => {
+    getUser();
+  }, []);
+
+  useEffect(() => {
+    let onCreateNoteListner, onDeleteNoteListner, onUpdateNoteListner;
+
     getNotes();
-    try {
-      API.graphql(graphqlOperation(onCreateNote)).subscribe({
+
+    if (user) {
+      onCreateNoteListner = API.graphql(
+        graphqlOperation(onCreateNote, {
+          owner: user.attributes.sub
+        })
+      ).subscribe({
         next: ({ value }) => {
           const newNote = value.data.onCreateNote;
           setNotes((prevState) => {
@@ -29,7 +45,11 @@ function Notetaker() {
         error: (error) =>
           console.log("error occured while onCreateNote subscription", error)
       });
-      API.graphql(graphqlOperation(onDeleteNote)).subscribe({
+      onDeleteNoteListner = API.graphql(
+        graphqlOperation(onDeleteNote, {
+          owner: user.attributes.sub
+        })
+      ).subscribe({
         next: ({ value }) => {
           const deletedNote = value.data.onDeleteNote;
           setNotes((prevState) =>
@@ -39,30 +59,45 @@ function Notetaker() {
         error: (error) =>
           console.log("error occured while onDeleteNote subscription", error)
       });
-      API.graphql(graphqlOperation(onUpdateNote)).subscribe({
+      onUpdateNoteListner = API.graphql(
+        graphqlOperation(onUpdateNote, {
+          owner: user.attributes.sub
+        })
+      ).subscribe({
         next: ({ value }) => {
           const updatedNote = value.data.onUpdateNote;
-          const index = notes.findIndex((note) => note.id === updatedNote.id);
-          if (index > -1)
-            setNotes((prevState) => [
+          setNotes((prevState) => {
+            const index = prevState.findIndex(
+              (note) => note.id === updatedNote.id
+            );
+            return [
               ...prevState.slice(0, index),
               updatedNote,
               ...prevState.slice(index + 1)
-            ]);
+            ];
+          });
         },
         error: (error) =>
           console.log("error occured while onUpdateNote subscription", error)
       });
-    } catch (error) {
-      console.log("error occured while doing subscription", error);
+      return () => {
+        onCreateNoteListner.unsubscribe();
+        onDeleteNoteListner.unsubscribe();
+        onUpdateNoteListner.unsubscribe();
+      };
     }
-  }, [notes]);
+  }, [user]);
+
+  const getUser = async () => {
+    const user = await Auth.currentAuthenticatedUser();
+    setUser(user);
+  };
 
   const getNotes = async () => {
     try {
       if (!notes.length) {
         const newNotes = await API.graphql(graphqlOperation(listNotes));
-        setNotes((prevState) => [...notes, ...newNotes.data.listNotes.items]);
+        setNotes(newNotes.data.listNotes.items);
       }
     } catch (error) {
       console.log("error occured in list notes API", error);
@@ -80,7 +115,6 @@ function Notetaker() {
 
   const updateNotes = async () => {
     const input = { id, note };
-    console.log("id inside update notes", id);
     await API.graphql(graphqlOperation(updateNote, { input }));
     setId("");
     setNote("");
@@ -115,9 +149,9 @@ function Notetaker() {
     }
   };
 
-  const handleEditNote = (note) => {
-    setNote(note.note);
-    setId(note.id);
+  const handleEditNote = ({ note, id }) => {
+    setNote(note);
+    setId(id);
   };
 
   return (

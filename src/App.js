@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import { withAuthenticator, AmplifySignOut } from "@aws-amplify/ui-react";
 import Notetaker from "./components/Notetaker";
@@ -9,10 +9,20 @@ Auth.configure(awsconfig);
 Amplify.configure(awsconfig);
 
 function App() {
+  const [user, setUser] = useState();
+
+  useEffect(() => {
+    getUser();
+  }, []);
+
+  const getUser = async () => {
+    const user = await Auth.currentAuthenticatedUser();
+    setUser(user);
+  };
   return (
     <div>
       <AmplifySignOut />
-      <Notetaker />
+      <Notetaker user={user} />
     </div>
   );
 }
